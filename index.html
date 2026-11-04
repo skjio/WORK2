@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 像素圖像生成器 2026 旗艦版 - 終極程序化引擎</title>
+    <style>
+        :root {
+            --bg-dark: #07070a;
+            --bg-panel: #111117;
+            --primary: #00e5ff;
+            --secondary: #ff0055;
+            --text-main: #f0f0f0;
+            --text-muted: #7a7a99;
+            --border: #222233;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 450px; background-color: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; overflow-y: auto; box-shadow: 5px 0 20px rgba(0,0,0,0.5); z-index: 10; }
+        .header { margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .header h1 { font-size: 22px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
+        .header h1::before { content: ''; display: inline-block; width: 12px; height: 12px; background-color: var(--secondary); border-radius: 50%; box-shadow: 0 0 12px var(--secondary); }
+
+        .input-group { margin-bottom: 25px; }
+        .input-group label { display: block; margin-bottom: 10px; font-size: 14px; color: var(--primary); font-weight: bold; text-shadow: 0 0 5px rgba(0, 229, 255, 0.3); }
+        textarea { width: 100%; height: 90px; background-color: rgba(0, 0, 0, 0.6); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 6px; resize: none; font-size: 15px; line-height: 1.5; transition: 0.3s; }
+        textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); background-color: rgba(0,0,0,0.8); }
+
+        .template-section { margin-bottom: 25px; border: 1px dashed var(--border); padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.3); }
+        .template-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .template-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .save-template-form { display: flex; gap: 8px; margin-bottom: 15px; }
+        .save-template-form input { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; font-size: 13px; }
+        .btn-small { background: rgba(0, 229, 255, 0.1); color: var(--primary); border: 1px solid var(--primary); padding: 8px 12px; font-size: 12px; cursor: pointer; border-radius: 4px; transition: all 0.2s; font-weight: bold; }
+        .btn-small:hover { background: var(--primary); color: #000; box-shadow: 0 0 10px var(--primary); }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag { background-color: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .tag:hover, .tag.active { border-color: var(--primary); color: var(--primary); background-color: rgba(0, 229, 255, 0.1); box-shadow: 0 0 8px rgba(0, 229, 255, 0.2); }
+        .tag-delete { color: var(--secondary); font-weight: bold; cursor: pointer; opacity: 0.5; padding: 0 4px; }
+        .tag-delete:hover { opacity: 1; }
+
+        .btn-generate { width: 100%; background: linear-gradient(135deg, var(--primary), #0077ff); color: #000; border: none; padding: 16px; font-size: 16px; font-weight: 900; cursor: pointer; border-radius: 6px; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; margin-bottom: 25px; box-shadow: 0 0 20px rgba(0, 229, 255, 0.3); }
+        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 5px 25px rgba(0, 229, 255, 0.5); }
+        .btn-generate:active { transform: translateY(1px); }
+
+        .preview-box { background-color: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; display: flex; flex-direction: column; flex-grow: 1; }
+        .preview-canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: repeating-linear-gradient(45deg, #111117, #111117 15px, #15151e 15px, #15151e 30px); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 20px; min-height: 200px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        canvas#previewCanvas { width: 160px; height: 160px; image-rendering: pixelated; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); }
+
+        .controls { display: flex; justify-content: center; gap: 12px; }
+        .control-btn { background-color: rgba(0,0,0,0.6); border: 1px solid var(--border); color: var(--text-muted); padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .control-btn.active { border-color: var(--primary); color: var(--primary); background-color: rgba(0, 229, 255, 0.15); box-shadow: 0 0 10px rgba(0, 229, 255, 0.2); }
+
+        .main-content { flex-grow: 1; padding: 40px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #15151e 0%, #07070a 100%); position: relative; }
+        .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; z-index: 2; }
+        .output-title { font-size: 20px; color: var(--primary); letter-spacing: 2px; font-weight: bold; }
+        .btn-export { background-color: rgba(255, 0, 85, 0.1); border: 1px solid var(--secondary); color: var(--secondary); padding: 10px 25px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.3s; letter-spacing: 1px; }
+        .btn-export:hover { background-color: var(--secondary); color: #fff; box-shadow: 0 0 20px rgba(255, 0, 85, 0.5); }
+
+        .canvas-wrapper { flex-grow: 1; display: flex; justify-content: center; align-items: center; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px; border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 12px; position: relative; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.9), 0 0 30px rgba(0, 229, 255, 0.05); z-index: 2; }
+        .scanline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 51%); background-size: 100% 4px; pointer-events: none; opacity: 0.4; z-index: 5; }
+        
+        /* 核心精緻網格 Canvas */
+        canvas#spriteCanvas { width: 384px; height: 512px; image-rendering: pixelated; background-color: transparent; border: 1px solid rgba(0, 229, 255, 0.1); z-index: 3; filter: drop-shadow(0 0 10px rgba(0,0,0,0.8)); }
+
+        .terminal { height: 160px; background-color: rgba(0,0,0,0.7); border: 1px solid var(--border); border-radius: 8px; margin-top: 30px; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; overflow-y: auto; color: #0f0; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); z-index: 2; }
+        .terminal p { margin-bottom: 5px; line-height: 1.5; }
+        .term-info { color: #00e5ff; }
+        .term-warn { color: #ffeb3b; }
+        .term-success { color: #0f0; }
+        .term-err { color: #ff0055; }
+        .term-dim { color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="header">
+            <h1>Pixel.AI // 2026 PRO</h1>
+        </div>
+
+        <div class="input-group">
+            <label>程序化特徵描述 (Prompt)</label>
+            <textarea id="promptInput" placeholder="請發揮想像力，例如：&#10;紅色雙頭機甲騎士、帶有惡魔翅膀的精靈法師、冰霜機械巨獸..."></textarea>
+        </div>
+        
+        <div class="template-section">
+            <div class="template-header">
+                <span class="template-title">動態特徵範本 (Dynamic Presets)</span>
+            </div>
+            <div class="save-template-form">
+                <input type="text" id="templateNameInput" placeholder="命名新範本...">
+                <button class="btn-small" onclick="saveTemplate()">+ 儲存</button>
+            </div>
+            <div class="tags" id="templateContainer"></div>
+        </div>
+
+        <button class="btn-generate" id="generateBtn">執行圖形推論引擎</button>
+
+        <div class="preview-box">
+            <label style="color: var(--primary); font-size: 12px; margin-bottom: 10px; display: block; text-transform: uppercase; font-weight:bold;">實時動態預覽 (Motion Test)</label>
+            <div class="preview-canvas-container">
+                <canvas id="previewCanvas" width="32" height="32"></canvas>
+            </div>
+            <div class="controls" id="dirBtns">
+                <button class="control-btn" data-dir="0">左側</button>
+                <button class="control-btn active" data-dir="1">正面</button>
+                <button class="control-btn" data-dir="2">背面</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="output-header">
+            <div class="output-title">RPG Maker 3x4 資產網格 (96x128)</div>
+            <button class="btn-export" id="exportBtn">匯出精緻 PNG</button>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="spriteCanvas" width="96" height="128"></canvas>
+            <div class="scanline"></div>
+        </div>
+        
+        <div class="terminal" id="terminalLog"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('spriteCanvas');
+        const ctx = canvas.getContext('2d', { alpha: true });
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d', { alpha: true });
+        const promptInput = document.getElementById('promptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const dirBtns = document.querySelectorAll('.control-btn');
+        const terminalLog = document.getElementById('terminalLog');
+        const templateContainer = document.getElementById('templateContainer');
+        const templateNameInput = document.getElementById('templateNameInput');
+
+        const TILE_SIZE = 32;
+        let currentSpriteData = null; 
+        let animationFrame = 0;
+        let currentDirection = 1;
+        let animTimer = null;
+        
+        // --- 核心：隨機數生成器 (確保相同 Prompt 產生相同結果，不同 Prompt 完全隨機) ---
+        class PRNG {
+            constructor(seed) { this.seed = seed; }
+            next() {
+                let x = Math.sin(this.seed++) * 10000;
+                return x - Math.floor(x);
+            }
+            range(min, max) { return min + this.next() * (max - min); }
+            choice(arr) { return arr[Math.floor(this.next() * arr.length)]; }
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash) + 1; // 避免 0
+        }
+
+        // 預設範本
+        const defaultTemplates = [
+            { name: "機甲法師", prompt: "穿著法袍的機械人，單眼紅光，背後有機械推進器，手持能量法杖" },
+            { name: "雙頭魔龍", prompt: "紅色的雙頭巨獸，有著巨大的惡魔翅膀與粗壯的尾巴，眼冒綠光" },
+            { name: "暗黑騎士", prompt: "全身漆黑重甲的骷髏騎士，披著紅色破爛披風，帶有頭盔" },
+            { name: "精緻動漫少女", prompt: "金髮碧眼，紅緞帶，藍色精緻洋裝的魔法少女，有小精靈翅膀" },
+            { name: "混沌混合體", prompt: "一半是機械一半是惡魔的混合體，紫色與灰色交織，多角" }
+        ];
+
+        function loadTemplates() {
+            templateContainer.innerHTML = '';
+            let templates = [];
+            try {
+                const stored = localStorage.getItem('rpgTemplates2026_ultimate');
+                templates = stored ? JSON.parse(stored) : [...defaultTemplates];
+            } catch (e) {
+                templates = [...defaultTemplates];
+            }
+
+            templates.forEach((tpl, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `<span>${tpl.name}</span>`;
+                
+                tag.querySelector('span').onclick = () => {
+                    document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                    promptInput.value = tpl.prompt;
+                    generateSpriteSheet();
+                };
+
+                if (index >= defaultTemplates.length) {
+                    const delBtn = document.createElement('span');
+                    delBtn.className = 'tag-delete';
+                    delBtn.innerHTML = '×';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteTemplate(index);
+                    };
+                    tag.appendChild(delBtn);
+                }
+                templateContainer.appendChild(tag);
+            });
+        }
+
+        function saveTemplate() {
+            const name = templateNameInput.value.trim();
+            const prompt = promptInput.value.trim();
+            if (!name || !prompt) { logTerminal('錯誤：請輸入範本名稱與提示詞。', 'term-err'); return; }
+            try {
+                const stored = localStorage.getItem('rpgTemplates2026_ultimate');
+                let templates = stored ? JSON.parse(stored) : [...defaultTemplates];
+                templates.push({ name, prompt });
+                localStorage.setItem('rpgTemplates2026_ultimate', JSON.stringify(templates));
+                templateNameInput.value = '';
+                logTerminal(`>>> 儲存自訂範本：[${name}]`, 'term-success');
+                loadTemplates();
+                // 自動點擊最新一個
+                const tags = document.querySelectorAll('.tag');
+                if(tags.length > 0) tags[tags.length-1].querySelector('span').click();
+            } catch (e) {
+                logTerminal('儲存提示：本地端數據已暫存。', 'term-warn');
+            }
+        }
+
+        function deleteTemplate(index) {
+            try {
+                let templates = JSON.parse(localStorage.getItem('rpgTemplates2026_ultimate'));
+                templates.splice(index, 1);
+                localStorage.setItem('rpgTemplates2026_ultimate', JSON.stringify(templates));
+                logTerminal('>>> 範本已刪除。', 'term-warn');
+                loadTemplates();
+            } catch (e) {}
+        }
+
+        function logTerminal(msg, className="term-info") {
+            const p = document.createElement('p');
+            p.className = className;
+            p.innerHTML = `<span class="term-dim">[${new Date().toLocaleTimeString().split(' ')[0]}]</span> ${msg}`;
+            terminalLog.appendChild(p);
+            terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        // --- 色彩工具 (加入陰影與高光計算) ---
+        function adjustColor(color, amount) {
+            let usePound = false;
+            if (color[0] == "#") { color = color.slice(1); usePound = true; }
+            let num = parseInt(color, 16);
+            let r = (num >> 16) + amount;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amount;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amount;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+        }
+
+        // --- 核心：提示詞解析與特徵組合 (Procedural Trait Extraction) ---
+        function parsePrompt(prompt) {
+            const seed = simpleHash(prompt);
+            const rng = new PRNG(seed);
+            
+            // 基礎隨機特徵 (隨 Prompt 雜湊完全變化)
+            let traits = {
+                base: rng.choice(['humanoid', 'humanoid', 'beast']),
+                head: rng.choice(['normal', 'helmet', 'skull']),
+                torso: rng.choice(['tunic', 'armor', 'robe']),
+                backAcc: rng.choice(['none', 'cape', 'dragon_wings', 'demon_wings', 'mech_jets']),
+                headAcc: rng.choice(['none', 'horns', 'halo']),
+                
+                colorPrimary: `#${Math.floor(rng.range(0, 16777215)).toString(16).padStart(6, '0')}`,
+                colorSec: `#${Math.floor(rng.range(0, 16777215)).toString(16).padStart(6, '0')}`,
+                colorSkin: rng.choice(['#ffcd94', '#eac086', '#dcdcdc', '#a8e6cf', '#ffb6c1', '#8888aa']),
+                colorEye: `#${Math.floor(rng.range(0, 16777215)).toString(16).padStart(6, '0')}`,
+                
+                isTwoHead: rng.next() > 0.8,
+                hasTail: rng.next() > 0.7
+            };
+
+            // 關鍵字覆蓋 (精準連動)
+            if(prompt.includes("龍") || prompt.includes("獸")) { traits.base = 'beast'; traits.head = 'beast'; traits.backAcc = 'dragon_wings'; traits.hasTail = true; }
+            if(prompt.includes("機甲") || prompt.includes("機械")) { traits.torso = 'armor'; traits.head = 'helmet'; traits.colorSkin = '#555566'; traits.backAcc = rng.choice(['none', 'mech_jets']); }
+            if(prompt.includes("騎士") || prompt.includes("鎧甲")) { traits.torso = 'armor'; }
+            if(prompt.includes("法師") || prompt.includes("魔法")) { traits.torso = 'robe'; }
+            if(prompt.includes("骷髏") || prompt.includes("亡靈")) { traits.head = 'skull'; traits.colorSkin = '#e0e0e0'; }
+            if(prompt.includes("惡魔") || prompt.includes("魔")) { traits.headAcc = 'horns'; traits.backAcc = 'demon_wings'; traits.hasTail = true; }
+            if(prompt.includes("天使") || prompt.includes("精靈")) { traits.headAcc = 'halo'; traits.backAcc = rng.choice(['cape', 'none']); }
+            if(prompt.includes("披風")) traits.backAcc = 'cape';
+            if(prompt.includes("雙頭")) traits.isTwoHead = true;
+            if(prompt.includes("少女") || prompt.includes("動漫")) { traits.base = 'humanoid'; traits.head = 'normal'; traits.torso = 'tunic'; traits.colorSkin = '#ffe0bd'; }
+
+            // 顏色覆蓋
+            if(prompt.includes("紅")) traits.colorPrimary = "#d92534";
+            if(prompt.includes("藍") || prompt.includes("冰")) traits.colorPrimary = "#256ed9";
+            if(prompt.includes("黑") || prompt.includes("暗")) { traits.colorPrimary = "#1a1a24"; traits.colorSec = "#333344"; }
+            if(prompt.includes("白")) traits.colorPrimary = "#f0f0f0";
+            if(prompt.includes("金")) traits.colorSec = "#ffd700";
+            if(prompt.includes("紫")) traits.colorPrimary = "#8a2be2";
+            if(prompt.includes("綠") || prompt.includes("毒")) traits.colorPrimary = "#2e8b57";
+            
+            if(prompt.includes("紅眼") || prompt.includes("紅光")) traits.colorEye = "#ff003c";
+            if(prompt.includes("綠光")) traits.colorEye = "#00ff3c";
+            if(prompt.includes("藍光")) traits.colorEye = "#00e5ff";
+
+            logTerminal(`> 解析特徵: 基底[${traits.base}], 裝甲[${traits.torso}], 背飾[${traits.backAcc}], 雙頭[${traits.isTwoHead}]`);
+            logTerminal(`> 色彩量化: 主色[${traits.colorPrimary}], 膚/底色[${traits.colorSkin}]`);
+            
+            return traits;
+        }
+
+        // --- 繪圖輔助函數 (支援精緻描邊與陰影) ---
+        function rect(ctx, x, y, w, h, color, outline=false) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
+            if(outline) {
+                ctx.fillStyle = "#000000"; // 黑色描邊增加立體感與像素風格
+                ctx.fillRect(x-1, y, 1, h); ctx.fillRect(x+w, y, 1, h);
+                ctx.fillRect(x, y-1, w, 1); ctx.fillRect(x, y+h, w, 1);
+            }
+        }
+        
+        function drawPixelPath(ctx, path, color, ox, oy) {
+            ctx.fillStyle = color;
+            path.forEach(p => {
+                ctx.fillRect(ox + p[0], oy + p[1], p[2]||1, p[3]||1);
+            });
+        }
+
+        // --- 核心組件渲染器 (Procedural Compositor) ---
+        function drawSprite(ctx, cx, cy, dir, frame, traits) {
+            const bounce = (frame === 1) ? -1 : (frame === 3 ? -1 : 0); // 1,3步態浮動
+            const ox = cx;
+            const oy = cy + bounce;
+            
+            ctx.save();
+            ctx.translate(ox, oy);
+
+            const cBase = traits.colorPrimary;
+            const cDark = adjustColor(cBase, -40);
+            const cLight = adjustColor(cBase, 40);
+            const cSec = traits.colorSec;
+            const cSkin = traits.colorSkin;
+            const cSkinDark = adjustColor(cSkin, -30);
+            const cEye = traits.colorEye;
+
+            // 1. 繪製背部配件 (翅膀/披風，背面視角時要畫在身體上面，正面在下面)
+            const drawBackAcc = () => {
+                if(traits.backAcc === 'cape') {
+                    ctx.fillStyle = cSec;
+                    if(dir === 0) { // 左
+                        ctx.fillRect(18, 12, 6, 14); ctx.fillStyle = adjustColor(cSec,-30); ctx.fillRect(20, 26, 4, 2);
+                    } else if(dir === 1) { // 正面(露出一點)
+                        ctx.fillRect(6, 12, 20, 16);
+                    } else if(dir === 2) { // 背面(大披風覆蓋)
+                        rect(ctx, 7, 11, 18, 17, cSec, true);
+                        rect(ctx, 8, 12, 16, 15, adjustColor(cSec, 20)); // 披風高光
+                    }
+                } else if(traits.backAcc === 'dragon_wings' || traits.backAcc === 'demon_wings') {
+                    ctx.fillStyle = cDark;
+                    if(dir !== 1) { // 側/背
+                        // 左翼
+                        drawPixelPath(ctx, [[15,10,2,2],[12,7,3,3],[7,4,5,3],[3,2,4,2],[1,4,2,8],[3,12,3,6]], cDark, 0, 0);
+                        // 右翼
+                        drawPixelPath(ctx, [[15,10,2,2],[17,7,3,3],[20,4,5,3],[25,2,4,2],[29,4,2,8],[26,12,3,6]], cDark, 0, 0);
+                        // 翼骨高光
+                        ctx.fillStyle = cSkinDark;
+                        ctx.fillRect(8,5,4,1); ctx.fillRect(20,5,4,1);
+                    }
+                } else if(traits.backAcc === 'mech_jets') {
+                    if(dir === 2 || dir === 0) {
+                        rect(ctx, 10, 10, 4, 8, '#555', true);
+                        rect(ctx, 18, 10, 4, 8, '#555', true);
+                        ctx.fillStyle = '#00ffff'; ctx.fillRect(11, 18, 2, 2); ctx.fillRect(19, 18, 2, 2); // 噴射火
+                    }
+                }
+            };
+
+            // 繪製順序邏輯 (Z-Index based on direction)
+            if(dir === 1 || dir === 0) drawBackAcc(); 
+
+            // 2. 繪製基底身體與下肢
+            if(traits.base === 'beast') {
+                // 獸體
+                rect(ctx, 10, 15, 12, 12, cSkin, true);
+                rect(ctx, 12, 17, 8, 8, cSkinDark); // 肚子
+                // 腿
+                rect(ctx, 9, 27, 4, 4, cSkinDark);
+                rect(ctx, 19, 27, 4, 4, cSkinDark);
+                if(traits.hasTail && dir !== 1) { // 尾巴
+                    rect(ctx, dir===0? 22:15, 22, 6, 4, cSkinDark);
+                    rect(ctx, dir===0? 26:15, 26, 4, 4, cSkin);
+                }
+            } else {
+                // 人形身體
+                if(traits.torso === 'armor') {
+                    rect(ctx, 11, 14, 10, 11, '#777', true); // 鐵甲底
+                    rect(ctx, 12, 15, 8, 9, cBase); // 裝甲主色
+                    rect(ctx, 12, 15, 8, 2, cLight); // 胸甲高光
+                    // 肩甲
+                    if(dir === 1 || dir === 2) {
+                        rect(ctx, 8, 13, 4, 5, cSec, true); rect(ctx, 20, 13, 4, 5, cSec, true);
+                    } else {
+                        rect(ctx, 12, 13, 5, 6, cSec, true);
+                    }
+                } else if(traits.torso === 'robe') {
+                    rect(ctx, 10, 14, 12, 14, cBase, true); // 法袍長
+                    rect(ctx, 11, 15, 10, 12, cDark); // 皺褶
+                    rect(ctx, 13, 15, 6, 12, cLight); // 中間高光
+                } else {
+                    rect(ctx, 11, 14, 10, 9, cBase, true); // 一般衣服
+                    rect(ctx, 12, 15, 8, 7, cLight);
+                }
+                
+                // 腳 (動態步行)
+                const footL = (frame === 1 || frame === 2) ? 1 : 0;
+                const footR = (frame === 3 || frame === 2) ? 1 : 0;
+                ctx.fillStyle = '#222';
+                if(dir === 1 || dir === 2) {
+                    ctx.fillRect(11, 25 + (traits.torso==='robe'?3:0) - footL, 4, 4);
+                    ctx.fillRect(17, 25 + (traits.torso==='robe'?3:0) - footR, 4, 4);
+                } else {
+                    ctx.fillRect(13, 25 + (traits.torso==='robe'?3:0) - footL, 5, 4);
+                }
+            }
+
+            // 3. 繪製頭部
+            const drawHead = (hx, hy) => {
+                if(traits.head === 'skull') {
+                    rect(ctx, hx-5, hy-6, 10, 10, '#ddd', true);
+                    rect(ctx, hx-4, hy-5, 8, 3, '#fff'); // 額頭高光
+                    if(dir !== 2) { // 眼睛與牙齒
+                        ctx.fillStyle = '#000'; ctx.fillRect(hx-3, hy-2, 3, 3); ctx.fillRect(hx+1, hy-2, 3, 3);
+                        ctx.fillStyle = cEye; ctx.fillRect(hx-2, hy-1, 1, 1); ctx.fillRect(hx+2, hy-1, 1, 1); // 鬼火
+                        ctx.fillStyle = '#000'; ctx.fillRect(hx-2, hy+2, 1, 2); ctx.fillRect(hx, hy+2, 1, 2); ctx.fillRect(hx+2, hy+2, 1, 2);
+                    }
+                } else if(traits.head === 'helmet') {
+                    rect(ctx, hx-6, hy-7, 12, 12, '#666', true);
+                    rect(ctx, hx-5, hy-6, 10, 10, cBase);
+                    rect(ctx, hx-4, hy-5, 8, 3, cLight); // 金屬反光
+                    if(dir !== 2) {
+                        rect(ctx, hx-4, hy-1, 8, 3, '#111'); // 護目鏡縫
+                        ctx.fillStyle = cEye; ctx.fillRect(hx-2, hy, 4, 1); // 機械單眼發光
+                    }
+                } else { // Normal or Beast
+                    const hc = traits.head==='beast' ? cSkinDark : cSkin;
+                    rect(ctx, hx-5, hy-6, 10, 11, hc, true);
+                    if(traits.head!=='beast') rect(ctx, hx-4, hy-5, 8, 4, adjustColor(hc, 20)); // 皮膚高光
+                    
+                    if(dir !== 2) { // 畫五官
+                        ctx.fillStyle = '#000';
+                        if(dir === 1) { // 正面
+                            ctx.fillRect(hx-4, hy-1, 3, 3); ctx.fillRect(hx+2, hy-1, 3, 3); // 眼睛
+                            ctx.fillStyle = cEye; ctx.fillRect(hx-3, hy, 1, 2); ctx.fillRect(hx+2, hy, 1, 2); // 瞳色
+                            ctx.fillStyle = '#fff'; ctx.fillRect(hx-3, hy-1, 1, 1); ctx.fillRect(hx+2, hy-1, 1, 1); // 動漫高光
+                            if(traits.head!=='beast') { ctx.fillStyle='#ff9999'; ctx.fillRect(hx-4, hy+2, 2, 1); ctx.fillRect(hx+3, hy+2, 2, 1); } // 腮紅
+                        } else { // 側面
+                            ctx.fillRect(hx-3, hy-1, 3, 3);
+                            ctx.fillStyle = cEye; ctx.fillRect(hx-2, hy, 1, 2);
+                            ctx.fillStyle = '#fff'; ctx.fillRect(hx-2, hy-1, 1, 1);
+                        }
+                    }
+                    
+                    // 頭髮 (如果是人類)
+                    if(traits.head === 'normal') {
+                        ctx.fillStyle = cSec;
+                        if(dir === 2) { // 背面全頭髮
+                            rect(ctx, hx-6, hy-7, 12, 14, cSec, true);
+                            rect(ctx, hx-5, hy-6, 10, 4, adjustColor(cSec, 40)); // 頭髮天使光環高光
+                        } else {
+                            rect(ctx, hx-6, hy-7, 12, 5, cSec, true); // 頂部頭髮
+                            rect(ctx, hx-5, hy-6, 10, 2, adjustColor(cSec, 40)); // 瀏海高光
+                            if(dir===1) { rect(ctx, hx-6, hy-2, 2, 6, cSec); rect(ctx, hx+5, hy-2, 2, 6, cSec); } // 兩鬢
+                            else { rect(ctx, hx-1, hy-2, 6, 6, cSec); }
+                        }
+                    }
+                }
+                
+                // 頭部裝飾
+                if(traits.headAcc === 'horns') {
+                    ctx.fillStyle = '#111';
+                    if(dir===1||dir===2) { rect(ctx, hx-7, hy-9, 2, 4, '#111'); rect(ctx, hx+6, hy-9, 2, 4, '#111'); }
+                    else { rect(ctx, hx-2, hy-9, 3, 4, '#111'); }
+                } else if (traits.headAcc === 'halo') {
+                    ctx.fillStyle = '#ffee00';
+                    ctx.fillRect(hx-6, hy-10, 13, 1); ctx.fillRect(hx-7, hy-9, 1, 2); ctx.fillRect(hx+7, hy-9, 1, 2);
+                }
+            };
+
+            // 處理雙頭或單頭
+            if(traits.isTwoHead) {
+                drawHead(10, 8); drawHead(22, 9);
+            } else {
+                drawHead(16, 7);
+            }
+
+            // 背面時背部配件畫在最上層
+            if(dir === 2) drawBackAcc();
+
+            ctx.restore();
+        }
+
+        // --- 主程式：生成圖集 ---
+        function generateSpriteSheet() {
+            const prompt = promptInput.value || "未知名稱";
+            terminalLog.innerHTML = '';
+            logTerminal(`[初始化] 接收提示詞：${prompt}`);
+            
+            const traits = parsePrompt(prompt);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const directions = [0, 1, 1, 2]; // row 0:正(繪製引擎的正=1), row 1:左(0), row 2:右(鏡像), row 3:背(2)
+            const dirMapping = [1, 0, 0, 2]; 
+            
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const cx = col * TILE_SIZE;
+                    const cy = row * TILE_SIZE;
+                    
+                    const isRightSide = (row === 2); 
+                    const drawDir = dirMapping[row]; 
+                    
+                    // 特殊步態幀陣列 [左腳, 站立, 右腳] 映射到 3格
+                    let frameMapping = 0;
+                    if(col === 0) frameMapping = 1;
+                    if(col === 1) frameMapping = 0;
+                    if(col === 2) frameMapping = 3;
+
+                    ctx.save();
+                    if (isRightSide) {
+                        ctx.translate(cx + TILE_SIZE, cy);
+                        ctx.scale(-1, 1);
+                        drawSprite(ctx, 0, 0, drawDir, frameMapping, traits);
+                    } else {
+                        drawSprite(ctx, cx, cy, drawDir, frameMapping, traits);
+                    }
+                    ctx.restore();
+                }
+            }
+
+            currentSpriteData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            logTerminal(`[完成] 程序化 3x4 網格 (96x128) 渲染成功！`, 'term-success');
+            startAnimation();
+        }
+
+        function updateAnimation() {
+            if (!currentSpriteData) return;
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            
+            let targetRow = 0;
+            if (currentDirection === 0) targetRow = 1; // 左
+            else if (currentDirection === 1) targetRow = 0; // 正
+            else if (currentDirection === 2) targetRow = 3; // 背
+            
+            const frameSeq = [0, 1, 2, 1]; // 循環動畫
+            const col = frameSeq[animationFrame % 4];
+            
+            const sx = col * TILE_SIZE;
+            const sy = targetRow * TILE_SIZE;
+            
+            previewCtx.putImageData(currentSpriteData, -sx, -sy);
+            animationFrame++;
+        }
+
+        function startAnimation() {
+            if (animTimer) clearInterval(animTimer);
+            animationFrame = 0;
+            updateAnimation();
+            animTimer = setInterval(updateAnimation, 250);
+        }
+
+        // --- 事件綁定 ---
+        generateBtn.addEventListener('click', generateSpriteSheet);
+
+        dirBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                dirBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentDirection = parseInt(e.target.dataset.dir);
+                if (currentSpriteData) { animationFrame = 1; updateAnimation(); }
+            });
+        });
+
+        exportBtn.addEventListener('click', () => {
+            if (!currentSpriteData) return alert("請先生成圖像！");
+            const link = document.createElement('a');
+            link.download = `rpg_sprite_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            logTerminal(`>>> 成功匯出高畫質 PNG`, 'term-warn');
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTemplates();
+            promptInput.value = defaultTemplates[0].prompt;
+            document.querySelectorAll('.tag')[0].classList.add('active');
+            generateSpriteSheet();
+        });
+    </script>
+</body>
+</html>
